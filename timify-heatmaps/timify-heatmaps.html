@@ -4,44 +4,25 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Datasources Sample</title>
+    <title>Timify heatmaps</title>
 
-    <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <!-- These two libraries are copied from the download builder here: https://datatables.net/download/ -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs4-4.1.1/jq-3.3.1/dt-1.10.18/b-1.5.6/b-colvis-1.5.6/cr-1.5.0/fh-3.1.4/r-2.2.2/sc-2.0.0/datatables.min.css" />
 
-    <!-- Bootstrap -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" >
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" ></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/v/bs4-4.1.1/jq-3.3.1/dt-1.10.18/b-1.5.6/b-colvis-1.5.6/cr-1.5.0/fh-3.1.4/r-2.2.2/sc-2.0.0/datatables.min.js">
+    </script>
+
+    <!-- An icon library, learn more here: https://material.io/resources/icons/?style=baseline -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
     <!-- Extensions Library (this will be hosted on a CDN eventually) -->
     <script src="/lib/tableau.extensions.1.latest.js"></script>
 
     <!-- Our extension's code -->
+    <link rel="stylesheet" href="./timify-heatmaps.css">
     <script src="./timify-heatmaps.js"></script>
   </head>
   <body>
-    <div class="container">
-      <!-- DataSources Table -->
-      <div id="dataSources">
-        <h4>All DataSources</h4>
-        <div class="table-responsive">
-          <table id="loading" class="table">
-            <tbody><tr><td>Loading...</td></tr></tbody>
-          </table>         
-          <table id="dataSourcesTable" class="table table-striped hidden">
-            <thead>
-              <tr>
-                <th>DataSource Name</th>
-                <th>Auto Refresh</th>
-                <th style="width: 100%">Info</th>
-              </tr>
-            </thead>
-            <tbody>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
     <div class="container-fluid">
         <!-- Main UI -->
         <div id="selected_marks">
@@ -49,6 +30,9 @@
                 Marks for <span class="sheet_name" id="selected_marks_title">Sheet Name</span>
                 <button title="Choose Sheet" type="button" class="btn btn-link" id="show_choose_sheet_button">
           <i class="material-icons">build</i>
+        </button>
+                <button title="Reset Filters" type="button" class="btn btn-link" id="reset_filters_button">
+          <i class="material-icons">replay</i>
         </button>
             </h4>
             <div id="data_table_wrapper"></div>
@@ -58,103 +42,21 @@
         </div>
     </div>
 
-      <!-- More dataSource info modal -->
-      <div class="modal fade" id="infoModal" role="dialog">
-        <div class="modal-dialog">
-          <!-- Modal content-->
-          <div class="modal-content">
-            <div class="modal-header">
-              <button type="button" class="close" data-dismiss="modal">&times;</button>
-              <h4 class="modal-title">DataSource Details</h4>
-            </div>
-            <div id="dataSourceDetails" class="modal-body">
-              <div class="table-responsive">          
-              <table id="detailsTable" class="table">
-                <tbody>
-                  <tr>
-                    <td>DataSource Name</td>
-                    <td id="nameDetail"></td>
-                  </tr>
-                  <tr>
-                    <td>DataSource Id</td>
-                    <td id="idDetail"></td>
-                  </tr>
-                  <tr>
-                    <td>Type</td>
-                    <td id="typeDetail"></td>
-                  </tr>
-                  <tr>
-                    <td>Fields</td>
-                    <td id="fieldsDetail"></td>
-                  </tr>
-                  <tr>
-                    <td>Connections</td>
-                    <td id="connectionsDetail"></td>
-                  </tr>
-                  <tr>
-                    <td>Active Tables</td>
-                    <td id="activeTablesDetail"></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-            </div>
-          </div>
-        </div>
-
-        <div id="choose_sheet_dialog" class="modal fade" tabindex="-1" role="dialog">
-          <div class="modal-dialog" role="document">
+    <!-- Choose Sheet Dialog (See https://www.w3schools.com/bootstrap/bootstrap_modal.asp for bootstrap dialog info) -->
+    <div id="choose_sheet_dialog" class="modal fade" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
             <div class="modal-content">
-              <div class="modal-header">
+                <div class="modal-header">
                     <h5 class="modal-title">Choose a Sheet from <span class="sheet_name" id="choose_sheet_title"></span></h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                      <span aria-hidden="true">&times;</span>
-                    </button>
-              </div>
-              <div class="modal-body">
+            <span aria-hidden="true">&times;</span>
+          </button>
+                </div>
+                <div class="modal-body">
                     <div id="choose_sheet_buttons"></div>
-              </div>
+                </div>
             </div>
-          </div>
         </div>
-
-        <!-- Existing Settings Table -->
-        <div id="settings">
-          <h4>Current Settings</h4>
-          <div class="table-responsive">   
-            <table id="settingsTable" class="table table-striped hidden">
-              <thead>
-                <tr>
-                  <th>Setting Name</th>
-                  <th>Setting Value</th>
-                  <th style="width: 100%">Erase?</th>
-                </tr>
-              </thead>
-              <tbody>
-              </tbody>
-            </table>
-            <table id="noSettingsWarning" class="table bg-danger hidden">
-              <tbody><tr><td>There are currently no saved settings for this extension.</td></tr></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- New Settings Submission Form -->
-        <div id="newSetting">
-         <hr>
-          <form id="settingForm">
-            <div class="form-group">
-              <input id="keyInput" type="text" class="form-control" placeholder="Setting Key">
-            </div>
-            <div class="form-group">
-              <input id="valueInput" type="text" class="form-control" placeholder="Setting Value">
-            </div>
-            <button id="save" type="button" class="btn btn-primary">Save / Update</button>
-          </form>
-        </div>
-      </div>
     </div>
-  </body>
+</body>
 </html>
