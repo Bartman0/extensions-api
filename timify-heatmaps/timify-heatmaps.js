@@ -72,6 +72,10 @@
     // This variable will save off the function we can call to unregister listening to marks-selected events
     let unregisterEventHandlerFunction;
 
+    // Variables to hold data;
+    let data;
+    let columns;
+
     function loadSelectedMarks(worksheetName) {
         // Remove any existing event listeners
         if (unregisterEventHandlerFunction) {
@@ -90,7 +94,7 @@
             const worksheetData = marks.data[0];
 
             // Map our data into the format which the data table component expects it
-            const data = worksheetData.data.map(function(row, index) {
+            data = worksheetData.data.map(function(row, index) {
                 const rowData = row.map(function(cell) {
                     return cell.formattedValue;
                 });
@@ -98,7 +102,7 @@
                 return rowData;
             });
 
-            const columns = worksheetData.columns.map(function(column) {
+            columns = worksheetData.columns.map(function(column) {
                 return {
                     title: column.fieldName
                 };
@@ -164,6 +168,7 @@
     function initializeButtons() {
         $('#show_choose_sheet_button').click(showChooseSheetDialog);
         $('#reset_filters_button').click(resetFilters);
+        $('#send_to_timify_button').click(sendToTimify);
     }
 
     // Save the columns we've applied filters to so we can reset them
@@ -203,5 +208,9 @@
         return tableau.extensions.dashboardContent.dashboard.worksheets.find(function(sheet) {
             return sheet.name === worksheetName;
         });
+    }
+
+    function sendToTimify() {
+        // send data to Timify
     }
 })();
