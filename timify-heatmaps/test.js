@@ -82,39 +82,107 @@ function convertToDwhConvention(externalId, enterpriseName) {
             return "EN" + padN(externalId, 4);;
         default:
             return externalId;
-    }    
+    }
 }
 
 const lookupCompanyData = (data, columns, externalId, enterpriseName) => {
     const store = convertToDwhConvention(externalId, enterpriseName);
-    columnIndexStore = columns.find(column => column.title.toUpperCase().startsWith("STORE"));
-    columnIndexHour = columns.find(column => column.title.toUpperCase().indexOf("HOUR") );
+    columnIndexDay = columns.find(column => column.title.toUpperCase().indexOf("DAYOFWEEK"));
+    columnIndexHour = columns.find(column => column.title.toUpperCase().indexOf("HOUR"));
     columnIndexHeatmap = columns.find(column => column.title.toUpperCase().matches("HEATMAP.*NAME"));
-    
-};
 
-getAccessToken(timify_auth_url).then((response) => {
-    console.debug(response);
-    const accessToken = response.accessToken;
-    getCompanies(enterprise_id, accessToken).then((response) => {
-        response.data.array.forEach((company, index, arrays) => {
-            intervals = lookupCompanyData(data, columns, company.externalId, company.enterprise.name);
-            // get footfallMapping for company external id
-            // intervals: [{ "footfall": "GREEN", "begin": "09:00", "end": "17:00" }]
-            if (intervals.found) {
-                footfallMapping = [
-                        { "isActive": true, "intervals": intervals.monday },
-                        { "isActive": true, "intervals": intervals.tuesday },
-                        { "isActive": true, "intervals": intervals.wednesday },
-                        { "isActive": true, "intervals": intervals.thursday },
-                        { "isActive": true, "intervals": intervals.friday },
-                        { "isActive": true, "intervals": intervals.saturday },
-                        { "isActive": true, "intervals": intervals.sunday }
-                ];
-                postFootfallMapping(company.id, accessToken, footfallMapping).then((response) => {
-                    console.log(response);
-                });                
+    // create empty intervals for the store
+    let intervals = {
+        "found": false,
+        "monday": [],
+        "tuesday": [],
+        "wednesday": [],
+        "thursday": [],
+        "friday": [],
+        "saturday": [],
+        "sunday": [],
+    };
+
+    if (store in data) {
+        // go through the data rows of a store
+        data[store].rows.forEach((row, index) => {
+            const day = row[columnIndexDay];
+            const hour = row[columnIndexHour];
+            const heatmap = row[columnIndexHeatmap];
+            // create an interval record
+            const intervalValue = { "begin": padN(hour, 2), "end": padN(hour + 1, 2), "footfall": heatmap };
+            // depending on the day of the week, append the interval record to the right day array
+            switch (parseInt(day)) {
+                case 1:
+                    intervals.monday.push(intervalValue);
+                    break;
+                case 2:
+                    intervals.tuesday.push(intervalValue);
+                    break;
+                case 3:
+                    intervals.wednesday.push(intervalValue);
+                    break;
+                case 4:
+                    intervals.thursday.push(intervalValue);
+                    break;
+                case 5:
+                    intervals.friday.push(intervalValue);
+                    break;
+                case 6:
+                    intervals.saturday.push(intervalValue);
+                    break;
+                case 7:
+                    intervals.sunday.push(intervalValue);
+                    break;
+                default:
+                    throw new Error("invalid day of week received in data");
             }
         });
+        // signal we actually found a store
+        intervals.found = true;
+    }
+    return intervals;
+};
+
+let storeHash = {};
+
+function convertDataToStoreHash(data, columns) {
+    columnIndexStore = columns.find(column => column.title.toUpperCase().startsWith("STORE"));
+    storeHash = {};
+    data.forEach((row, index) => {
+        const store = row[columnIndexStore];
+        if (!(store in storeHash)) {
+            storeHash[store] = { "rows": [] };
+        }
+        storeHash[store].rows.push(row);
     });
-});
+}
+
+function sendToTimify(data, columns) {
+    const storeData = convertDataToStoreHash(data, columns);
+    getAccessToken(timify_auth_url).then((response) => {
+        console.debug(response);
+        const accessToken = response.accessToken;
+        getCompanies(enterprise_id, accessToken).then((response) => {
+            response.data.array.forEach((company, index, arrays) => {
+                intervals = lookupCompanyData(storeData, columns, company.externalId, company.enterprise.name);
+                // get footfallMapping for company external id
+                // intervals: [{ "footfall": "GREEN", "begin": "09:00", "end": "17:00" }]
+                if (intervals.found) {
+                    footfallMapping = [
+                            { "isActive": (intervals.monday.lenght == 0 ?    false : true), "intervals": intervals.monday },
+                            { "isActive": (intervals.tuesday.lenght == 0 ?   false : true), "intervals": intervals.tuesday },
+                            { "isActive": (intervals.wednesday.lenght == 0 ? false : true), "intervals": intervals.wednesday },
+                            { "isActive": (intervals.thursday.lenght == 0 ?  false : true), "intervals": intervals.thursday },
+                            { "isActive": (intervals.friday.lenght == 0 ?    false : true), "intervals": intervals.friday },
+                            { "isActive": (intervals.saturday.lenght == 0 ?  false : true), "intervals": intervals.saturday },
+                            { "isActive": (intervals.sunday.lenght == 0 ?    false : true), "intervals": intervals.sunday }
+                    ];
+                    postFootfallMapping(company.id, accessToken, footfallMapping).then((response) => {
+                        console.log(response);
+                    });                
+                }
+            });
+        });
+    });   
+}

@@ -210,7 +210,7 @@
         });
     }
 
-    function sendToTimify() {
+    function sendToTimify(data, columns) {
         // send data to Timify
     }
 })();
