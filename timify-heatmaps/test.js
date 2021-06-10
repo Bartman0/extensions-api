@@ -1,5 +1,5 @@
 // this can go when running in a browser
-const fetch = require("node-fetch");
+//const fetch = require("node-fetch");
 
 const timify_base_url = "https://api.timify.com/v1";
 const timify_auth_path = "auth/token";
@@ -36,6 +36,7 @@ const headers = (method, accessToken) => {
 };
 
 const getCompanies = async (enterprise_id, accessToken) => {
+    // retrieve a list of companies for the specified enterprise id
     try {
         const timify_companies_path = "companies";
         const timify_companies_url = timify_base_url + "/" + timify_companies_path + "?" + "enterprise_id=" + enterprise_id;
@@ -50,6 +51,7 @@ const getCompanies = async (enterprise_id, accessToken) => {
 };
 
 const postFootfallMapping = async (id, accessToken, footfallMapping) => {
+    // send the footfall mapping for the store id to Timify
     try {
         const timify_companies_settings_path = `companies/${id}/settings`;
         const timify_companies_settings_url = timify_base_url + "/" + timify_companies_settings_path;
@@ -71,6 +73,7 @@ function padN(num, length) {
 }
 
 function convertToDwhConvention(externalId, enterpriseName) {
+    // create a HA standardized and unique name for E+M stores
     switch (enterpriseName) {
         case "eyes + more Österreich":
             return "EA" + padN(externalId, 4);
@@ -100,7 +103,7 @@ const lookupCompanyData = (data, columns, externalId, enterpriseName) => {
         "thursday": [],
         "friday": [],
         "saturday": [],
-        "sunday": [],
+        "sunday": []
     };
 
     if (store in data) {
@@ -164,7 +167,8 @@ function sendToTimify(data, columns) {
         console.debug(response);
         const accessToken = response.accessToken;
         getCompanies(enterprise_id, accessToken).then((response) => {
-            response.data.array.forEach((company, index, arrays) => {
+            console.debug(response);
+            response.data.forEach((company, index, arrays) => {
                 intervals = lookupCompanyData(storeData, columns, company.externalId, company.enterprise.name);
                 // get footfallMapping for company external id
                 // intervals: [{ "footfall": "GREEN", "begin": "09:00", "end": "17:00" }]
@@ -186,3 +190,5 @@ function sendToTimify(data, columns) {
         });
     });   
 }
+
+//sendToTimify(null, null);
